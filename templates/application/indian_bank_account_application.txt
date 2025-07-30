@@ -1,0 +1,62 @@
+To,
+The Branch Manager
+[Bank Name]
+[Branch Address]
+[City, State - Pin Code]
+
+From,
+[Your Full Name]
+[Address]
+[City, State - Pin Code]
+[Mobile: +91-XXXXXXXXXX]
+[Email: your.email@example.com]
+
+Date: DD/MM/YYYY
+
+Subject: Application for Opening Savings Bank Account
+
+Respected Sir/Madam,
+
+I would like to open a Savings Bank Account in your esteemed bank. I am providing my details below for your reference and processing.
+
+Personal Details:
+- Full Name: [Your Full Name]
+- Father's/Husband's Name: [Name]
+- Date of Birth: DD/MM/YYYY
+- Occupation: [Your Occupation]
+- Annual Income: Rs. [Amount]
+- PAN Number: XXXXXXXXXX
+- Aadhaar Number: XXXX-XXXX-XXXX
+
+Address Details:
+- Present Address: [Complete Address with Pin Code]
+- Permanent Address: [Complete Address with Pin Code]
+- Mobile Number: +91-XXXXXXXXXX
+- Email ID: [Your Email]
+
+Account Details Required:
+- Type of Account: Savings Account
+- Initial Deposit: Rs. [Amount]
+- Nominee Details: [Name, Relationship, Age]
+
+I have enclosed all the required documents as per RBI guidelines. I request you to kindly process my application and open the account at the earliest.
+
+I assure you that I will maintain the minimum balance and follow all banking rules and regulations.
+
+Thanking you,
+
+Yours faithfully,
+
+[Your Signature]
+[Your Full Name]
+
+Enclosures:
+1. Account Opening Form (duly filled)
+2. PAN Card Copy
+3. Aadhaar Card Copy
+4. Address Proof (Utility Bill/Rent Agreement)
+5. Identity Proof
+6. Passport Size Photographs
+7. Initial Deposit Cheque/Cash
+8. Income Proof (Salary Slip/ITR)
+9. Nominee's Identity Proof

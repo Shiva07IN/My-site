@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+</head>
+<body>
+    <div class="cursor"></div>
+    <div class="cursor-follower"></div>
+    
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo" data-aos="fade-right">
+                <i class="fas fa-robot"></i>
+                AI Document Assistant
+            </div>
+            <ul class="nav-menu">
+                <li data-aos="fade-down" data-aos-delay="100"><a href="#home" class="nav-link">Home</a></li>
+                <li data-aos="fade-down" data-aos-delay="200"><a href="#features" class="nav-link">Features</a></li>
+                <li data-aos="fade-down" data-aos-delay="300"><a href="#documents" class="nav-link">Documents</a></li>
+                <li data-aos="fade-down" data-aos-delay="400"><a href="#chat" class="nav-link">AI Chat</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-bg">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+            <div class="zoom-objects">
+                <div class="zoom-object zoom-1"><i class="fas fa-file-alt"></i></div>
+                <div class="zoom-object zoom-2"><i class="fas fa-robot"></i></div>
+                <div class="zoom-object zoom-3"><i class="fas fa-download"></i></div>
+                <div class="zoom-object zoom-4"><i class="fas fa-magic"></i></div>
+                <div class="zoom-object zoom-5"><i class="fas fa-shield-alt"></i></div>
+            </div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-text">
+                <div class="hero-badge zoom-in" data-aos="zoom-in">🤖 AI-Powered Document Generation</div>
+                <h1 class="hero-title zoom-text" data-aos="zoom-in" data-aos-delay="200">
+                    <span class="text-gradient">Smart Document Assistant</span>
+                </h1>
+                <p class="hero-subtitle" data-aos="zoom-in-up" data-aos-delay="400">Generate Professional Documents with AI</p>
+                <p class="hero-description" data-aos="zoom-in-up" data-aos-delay="600">Create affidavits, letters, contracts, and more with our intelligent document generation system</p>
+                <div class="hero-buttons" data-aos="zoom-in" data-aos-delay="800">
+                    <button class="btn btn-primary zoom-hover" onclick="startChat()">
+                        <span>Start Generating</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">What we offer</span>
+                <h2 class="section-title">Powerful Features</h2>
+                <p class="section-subtitle">Everything you need to create professional documents</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card zoom-card" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="feature-icon zoom-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>AI-Powered Generation</h3>
+                    <p>Advanced AI understands your requirements and generates professional documents automatically</p>
+                </div>
+                <div class="feature-card zoom-card" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="feature-icon zoom-icon">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <h3>PDF Export</h3>
+                    <p>Export your documents in PDF format with professional formatting and layout</p>
+                </div>
+                <div class="feature-card zoom-card" data-aos="zoom-in" data-aos-delay="300">
+                    <div class="feature-icon zoom-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Secure & Private</h3>
+                    <p>Your data is processed securely with privacy protection and no data storage</p>
+                </div>
+                <div class="feature-card zoom-card" data-aos="zoom-in" data-aos-delay="400">
+                    <div class="feature-icon zoom-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>Instant Generation</h3>
+                    <p>Generate professional documents in seconds, not hours. Save time and effort</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Document Types Section -->
+    <section id="documents" class="documents">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">Document types</span>
+                <h2 class="section-title">What We Can Generate</h2>
+                <p class="section-subtitle">Professional documents for all your needs</p>
+            </div>
+            <div class="documents-grid">
+                <div class="doc-card zoom-card" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="doc-icon">
+                        <i class="fas fa-gavel"></i>
+                    </div>
+                    <h3>Affidavits</h3>
+                    <p>Legal affidavits with proper formatting and professional language</p>
+                    <button class="doc-btn" onclick="selectDocumentType('affidavit')">Generate Now</button>
+                </div>
+                <div class="doc-card zoom-card" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="doc-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Formal Letters</h3>
+                    <p>Business letters, applications, and formal correspondence</p>
+                    <button class="doc-btn" onclick="selectDocumentType('letter')">Generate Now</button>
+                </div>
+                <div class="doc-card zoom-card" data-aos="zoom-in" data-aos-delay="300">
+                    <div class="doc-icon">
+                        <i class="fas fa-handshake"></i>
+                    </div>
+                    <h3>Contracts</h3>
+                    <p>Professional contracts and agreements with legal terminology</p>
+                    <button class="doc-btn" onclick="selectDocumentType('contract')">Generate Now</button>
+                </div>
+                <div class="doc-card zoom-card" data-aos="zoom-in" data-aos-delay="400">
+                    <div class="doc-icon">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <h3>Certificates</h3>
+                    <p>Official certificates with formal formatting and structure</p>
+                    <button class="doc-btn" onclick="selectDocumentType('certificate')">Generate Now</button>
+                </div>
+                <div class="doc-card zoom-card" data-aos="zoom-in" data-aos-delay="500">
+                    <div class="doc-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <h3>Applications</h3>
+                    <p>Job applications, government forms, and official applications</p>
+                    <button class="doc-btn" onclick="selectDocumentType('application')">Generate Now</button>
+                </div>
+                <div class="doc-card zoom-card" data-aos="zoom-in" data-aos-delay="600">
+                    <div class="doc-icon">
+                        <i class="fas fa-edit"></i>
+                    </div>
+                    <h3>Custom Documents</h3>
+                    <p>Any other document type tailored to your specific needs</p>
+                    <button class="doc-btn" onclick="selectDocumentType('custom')">Generate Now</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Chat Section -->
+    <section id="chat" class="chat-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">Try it now</span>
+                <h2 class="section-title">AI Document Generator</h2>
+                <p class="section-subtitle">Describe what you need and let AI create it for you</p>
+            </div>
+            <div class="chat-container" data-aos="zoom-in" data-aos-delay="200">
+                <div class="chat-header">
+                    <div class="chat-status">
+                        <div class="status-dot"></div>
+                        <span>AI Assistant Online</span>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <p>Hello! I'm your AI Document Assistant. Tell me what document you need and I'll help you create it. For example:</p>
+                            <ul>
+                                <li>"I need an affidavit for address proof"</li>
+                                <li>"Create a formal letter to my manager"</li>
+                                <li>"Generate a contract for freelance work"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <div class="document-type-selector">
+                        <select id="documentType" class="doc-select">
+                            <option value="general">General Chat</option>
+                            <option value="affidavit">Affidavit</option>
+                            <option value="letter">Formal Letter</option>
+                            <option value="contract">Contract</option>
+                            <option value="certificate">Certificate</option>
+                            <option value="application">Application</option>
+                            <option value="custom">Custom Document</option>
+                        </select>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="messageInput" placeholder="Describe the document you need..." />
+                        <button id="sendButton" class="send-btn zoom-hover">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

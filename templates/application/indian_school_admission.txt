@@ -1,0 +1,60 @@
+To,
+The Principal
+[School Name]
+[School Address]
+[City, State - Pin Code]
+
+From,
+[Parent's/Guardian's Name]
+[Relationship to Student]
+[Address]
+[City, State - Pin Code]
+[Mobile: +91-XXXXXXXXXX]
+
+Date: DD/MM/YYYY
+
+Subject: Application for Admission of my [son/daughter/ward] to [Class/Standard]
+
+Respected Sir/Madam,
+
+I am writing to request admission for my [son/daughter/ward], [Student's Name], to [Class/Standard] in your esteemed institution for the academic year [Year].
+
+Student Details:
+- Full Name: [Student's Full Name]
+- Father's Name: [Father's Name]
+- Mother's Name: [Mother's Name]
+- Date of Birth: DD/MM/YYYY
+- Previous School: [If applicable]
+- Last Class Attended: [If applicable]
+- Aadhaar Number: XXXX-XXXX-XXXX
+
+Parent/Guardian Details:
+- Father's Name: [Name]
+- Father's Occupation: [Occupation]
+- Mother's Name: [Name]
+- Mother's Occupation: [Occupation]
+- Annual Income: Rs. [Amount]
+- Contact Number: +91-XXXXXXXXXX
+- Email: [Email address]
+
+I have enclosed all the required documents and certificates. I assure you that my ward will follow all school rules and regulations.
+
+I request you to kindly consider this application and grant admission to my [son/daughter/ward].
+
+Thanking you,
+
+Yours faithfully,
+
+[Parent's/Guardian's Signature]
+[Parent's/Guardian's Name]
+
+Enclosures:
+1. Birth Certificate
+2. Transfer Certificate (if applicable)
+3. Mark Sheets/Report Cards
+4. Aadhaar Card Copy (Student & Parent)
+5. Address Proof
+6. Income Certificate
+7. Caste Certificate (if applicable)
+8. Passport Size Photographs
+9. Medical Certificate

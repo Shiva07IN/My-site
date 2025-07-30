@@ -1,0 +1,49 @@
+To,
+The Hiring Manager/HR Department
+[Company Name]
+[Company Address]
+[City, State - Pin Code]
+
+From,
+[Your Full Name]
+[Your Address]
+[City, State - Pin Code]
+[Mobile: +91-XXXXXXXXXX]
+[Email: your.email@example.com]
+[Aadhaar No: XXXX-XXXX-XXXX]
+[PAN No: XXXXXXXXXX]
+
+Date: DD/MM/YYYY
+
+Subject: Application for the post of [Job Position]
+
+Respected Sir/Madam,
+
+I am writing to express my interest in the [Job Position] advertised in [source of advertisement] dated [date]. I believe my qualifications and experience make me a suitable candidate for this position.
+
+Educational Qualifications:
+- [Degree] from [University/Institution] - [Year]
+- [Additional qualifications]
+
+Work Experience:
+- [Previous job details with duration]
+- [Key achievements and responsibilities]
+
+I have attached my resume and relevant certificates for your consideration. I am available for an interview at your convenience.
+
+I look forward to hearing from you soon.
+
+Thanking you,
+
+Yours faithfully,
+
+[Your Signature]
+[Your Full Name]
+
+Enclosures:
+1. Resume/CV
+2. Educational Certificates
+3. Experience Certificates
+4. Aadhaar Card Copy
+5. PAN Card Copy
+6. Passport Size Photographs

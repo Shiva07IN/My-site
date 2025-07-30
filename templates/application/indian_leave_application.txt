@@ -1,0 +1,35 @@
+To,
+The Principal/Manager/Head
+[Institution/Office Name]
+[Address]
+[City, State - Pin Code]
+
+From,
+[Your Name]
+[Your Designation/Class]
+[Your Address]
+[City, State - Pin Code]
+[Mobile: +91-XXXXXXXXXX]
+[Email: your.email@example.com]
+
+Date: DD/MM/YYYY
+
+Subject: Application for Leave
+
+Respected Sir/Madam,
+
+I am writing to request leave from [start date] to [end date] due to [reason for leave]. I have completed all my pending work and have made arrangements for any urgent matters during my absence.
+
+I kindly request you to grant me leave for the mentioned period. I shall be grateful for your consideration.
+
+Thanking you,
+
+Yours faithfully,
+
+[Your Signature]
+[Your Name]
+[Employee ID/Roll Number]
+
+Enclosures:
+1. Medical Certificate (if applicable)
+2. Supporting documents (if any)

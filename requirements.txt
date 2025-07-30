@@ -1,0 +1,6 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+reportlab==4.0.4
+python-dotenv==1.0.0
+groq==0.4.2
+gunicorn==21.2.0
