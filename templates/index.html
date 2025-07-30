@@ -55,6 +55,59 @@
         </div>
     </section>
 
+    <!-- AI Chat Section -->
+    <section id="chat" class="chat-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-tag">Try it now</span>
+                <h2 class="section-title">AI Document Generator</h2>
+                <p class="section-subtitle">Describe what you need and let AI create it for you</p>
+            </div>
+            <div class="chat-container" data-aos="zoom-in" data-aos-delay="200">
+                <div class="chat-header">
+                    <div class="chat-status">
+                        <div class="status-dot"></div>
+                        <span>AI Assistant Online</span>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <p>Hello! I'm your AI Document Assistant. Tell me what document you need and I'll help you create it. For example:</p>
+                            <ul>
+                                <li>"I need an affidavit for address proof"</li>
+                                <li>"Create a formal letter to my manager"</li>
+                                <li>"Generate a contract for freelance work"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <div class="document-type-selector">
+                        <select id="documentType" class="doc-select">
+                            <option value="general">General Chat</option>
+                            <option value="affidavit">Affidavit</option>
+                            <option value="letter">Formal Letter</option>
+                            <option value="contract">Contract</option>
+                            <option value="certificate">Certificate</option>
+                            <option value="application">Application</option>
+                            <option value="custom">Custom Document</option>
+                        </select>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="messageInput" placeholder="Describe the document you need..." />
+                        <button id="sendButton" class="send-btn zoom-hover">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Features Section -->
     <section id="features" class="features">
         <div class="container">
@@ -152,59 +205,6 @@
                     <h3>Custom Documents</h3>
                     <p>Any other document type tailored to your specific needs</p>
                     <button class="doc-btn" onclick="selectDocumentType('custom')">Generate Now</button>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- AI Chat Section -->
-    <section id="chat" class="chat-section">
-        <div class="container">
-            <div class="section-header" data-aos="fade-up">
-                <span class="section-tag">Try it now</span>
-                <h2 class="section-title">AI Document Generator</h2>
-                <p class="section-subtitle">Describe what you need and let AI create it for you</p>
-            </div>
-            <div class="chat-container" data-aos="zoom-in" data-aos-delay="200">
-                <div class="chat-header">
-                    <div class="chat-status">
-                        <div class="status-dot"></div>
-                        <span>AI Assistant Online</span>
-                    </div>
-                </div>
-                <div class="chat-messages" id="chatMessages">
-                    <div class="message ai-message">
-                        <div class="message-avatar">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <div class="message-content">
-                            <p>Hello! I'm your AI Document Assistant. Tell me what document you need and I'll help you create it. For example:</p>
-                            <ul>
-                                <li>"I need an affidavit for address proof"</li>
-                                <li>"Create a formal letter to my manager"</li>
-                                <li>"Generate a contract for freelance work"</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="chat-input-container">
-                    <div class="document-type-selector">
-                        <select id="documentType" class="doc-select">
-                            <option value="general">General Chat</option>
-                            <option value="affidavit">Affidavit</option>
-                            <option value="letter">Formal Letter</option>
-                            <option value="contract">Contract</option>
-                            <option value="certificate">Certificate</option>
-                            <option value="application">Application</option>
-                            <option value="custom">Custom Document</option>
-                        </select>
-                    </div>
-                    <div class="chat-input">
-                        <input type="text" id="messageInput" placeholder="Describe the document you need..." />
-                        <button id="sendButton" class="send-btn zoom-hover">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
