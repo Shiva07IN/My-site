@@ -112,17 +112,25 @@ class DocumentGenerator:
             # Process and add main content with better formatting
             clean_text = str(text).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
             
-            # Split content into paragraphs and format
+            # Split content into paragraphs and format with better spacing
             paragraphs = clean_text.split('\n')
-            for para in paragraphs:
+            for i, para in enumerate(paragraphs):
                 para = para.strip()
                 if para:
-                    # Check if it's a heading (starts with number or capital letters)
-                    if para.isupper() or para.startswith(('1.', '2.', '3.', '4.', '5.', 'ARTICLE', 'SECTION')):
+                    # Check if it's a heading or title
+                    if (para.isupper() and len(para) < 50) or para.startswith(('1.', '2.', '3.', '4.', '5.', 'To,', 'Subject:', 'Date:', 'DEPONENT', 'VERIFICATION')):
                         elements.append(Paragraph(para, heading_style))
+                        elements.append(Spacer(1, 15))
                     else:
                         elements.append(Paragraph(para, content_style))
-                    elements.append(Spacer(1, 10))
+                        # Add more space after certain sections
+                        if para.endswith((':')) or 'faithfully' in para.lower() or 'sincerely' in para.lower():
+                            elements.append(Spacer(1, 20))
+                        else:
+                            elements.append(Spacer(1, 12))
+                else:
+                    # Add space for empty lines
+                    elements.append(Spacer(1, 8))
             
             # Add signature section
             elements.append(Spacer(1, 40))
@@ -178,36 +186,78 @@ def generate_ai_response(prompt: str, document_type: str) -> str:
     try:
         # Advanced system prompts with detailed instructions
         system_prompts = {
-            'affidavit': """You are a senior legal document specialist with 20+ years experience. Create a legally compliant affidavit with:
+            'affidavit': """You are an Indian legal document expert. Create an Indian format affidavit with proper spacing:
             
-STRUCTURE:
-            1. AFFIDAVIT title (centered, bold)
-            2. STATE/JURISDICTION line
-            3. COUNTY line  
-            4. Declarant identification (I, [NAME], being duly sworn...)
-            5. Numbered factual statements (clear, specific)
-            6. Oath clause ("I declare under penalty of perjury...")
-            7. Signature block with notary section
+FORMAT:
+            AFFIDAVIT
             
-            LANGUAGE: Formal legal terminology, first person, present tense for facts
-            FORMAT: Professional legal document structure with proper spacing""",
+            I, [FULL NAME], son/daughter of [FATHER'S NAME], aged [AGE] years, resident of [FULL ADDRESS], do hereby solemnly affirm and declare as under:
             
-            'letter': """You are an executive communications expert. Create a professional business letter with:
+            1. That I am the deponent herein and I am competent to swear to this affidavit.
             
-            STRUCTURE:
-            1. Sender's address (top right or letterhead)
-            2. Date
-            3. Recipient's address (left aligned)
-            4. Subject line (RE: [SUBJECT])
-            5. Professional salutation (Dear Mr./Ms. [NAME])
-            6. Opening paragraph (purpose)
-            7. Body paragraphs (details, supporting information)
-            8. Closing paragraph (call to action/next steps)
-            9. Professional closing (Sincerely, Best regards)
-            10. Signature block
+            2. That [main statement with proper details].
             
-            TONE: Professional, courteous, clear and concise
-            FORMAT: Standard business letter format with proper spacing""",
+            3. That [supporting facts].
+            
+            4. That I undertake to inform the concerned authorities if any of the above information is found to be false or incorrect.
+            
+            5. That this affidavit is made for [PURPOSE] and no other purpose.
+            
+            DEPONENT
+            
+            VERIFICATION
+            
+            I, the above named deponent, do hereby verify that the contents of this affidavit are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+            
+            Verified at [PLACE] on this [DATE] day of [MONTH], [YEAR].
+            
+            DEPONENT
+            
+            Use proper Indian legal language and format with adequate spacing between sections.""",
+            
+            'letter': """You are an Indian business communication expert. Create Indian format business letter with proper spacing:
+            
+            FORMAT:
+            [SENDER'S NAME]
+            [DESIGNATION]
+            [COMPANY/ORGANIZATION]
+            [ADDRESS]
+            [CITY, PIN CODE]
+            [EMAIL]
+            [MOBILE NUMBER]
+            
+            Date: [DATE]
+            
+            To,
+            [RECIPIENT'S NAME]
+            [DESIGNATION]
+            [COMPANY/ORGANIZATION]
+            [ADDRESS]
+            [CITY, PIN CODE]
+            
+            Subject: [SUBJECT LINE]
+            
+            Dear Sir/Madam,
+            
+            I hope this letter finds you in good health and spirits.
+            
+            [Opening paragraph explaining purpose]
+            
+            [Main content with details]
+            
+            [Supporting information or request]
+            
+            I would be grateful if you could [specific request/action needed]. Please feel free to contact me if you need any additional information.
+            
+            Thanking you for your time and consideration.
+            
+            Yours sincerely,
+            
+            [SIGNATURE]
+            [FULL NAME]
+            [DESIGNATION]
+            
+            Use formal Indian business language with respectful tone and proper spacing.""",
             
             'contract': """You are a contract law specialist. Create a comprehensive legal contract with:
             
@@ -242,20 +292,47 @@ STRUCTURE:
             TONE: Formal, official, authoritative
             FORMAT: Certificate layout with centered elements""",
             
-            'application': """You are an application processing expert. Create a complete application form with:
+            'application': """You are an Indian government application expert. Create Indian format application with proper spacing:
             
-            STRUCTURE:
-            1. APPLICATION FOR [PURPOSE] (title)
-            2. APPLICANT INFORMATION (personal details)
-            3. APPLICATION DETAILS (specific requirements)
-            4. SUPPORTING INFORMATION (qualifications, reasons)
-            5. DECLARATIONS (truthfulness, compliance)
-            6. REQUIRED DOCUMENTS (checklist)
-            7. SIGNATURE AND DATE
-            8. FOR OFFICE USE ONLY (processing section)
+            FORMAT:
+            To,
+            [DESIGNATION]
+            [DEPARTMENT/ORGANIZATION]
+            [ADDRESS]
             
-            TONE: Formal, respectful, complete
-            FORMAT: Standard application form structure""",
+            Subject: Application for [PURPOSE]
+            
+            Respected Sir/Madam,
+            
+            I, [FULL NAME], son/daughter of [FATHER'S NAME], aged [AGE] years, resident of [FULL ADDRESS], would like to submit this application for [PURPOSE].
+            
+            My details are as follows:
+            
+            1. Name: [FULL NAME]
+            2. Father's/Husband's Name: [NAME]
+            3. Date of Birth: [DOB]
+            4. Address: [FULL ADDRESS]
+            5. Mobile Number: [MOBILE]
+            6. Email ID: [EMAIL]
+            7. Educational Qualification: [QUALIFICATION]
+            
+            I request you to kindly consider my application and grant me [REQUEST]. I shall be highly obliged for your kind consideration.
+            
+            Thanking you,
+            
+            Yours faithfully,
+            
+            [SIGNATURE]
+            [FULL NAME]
+            
+            Date: [DATE]
+            Place: [PLACE]
+            
+            Enclosures:
+            1. [DOCUMENT 1]
+            2. [DOCUMENT 2]
+            
+            Use formal Indian application language with proper spacing and respectful tone.""",
             
             'general': """You are a professional document specialist. Create well-structured documents with:
             - Clear hierarchical headings
@@ -299,9 +376,10 @@ STRUCTURE:
         
         response = chat_completion.choices[0].message.content.strip()
         
-        # Post-process response for better formatting
+        # Post-process response for better Indian format
         response = response.replace('**', '').replace('*', '')  # Remove markdown
         response = re.sub(r'\n{3,}', '\n\n', response)  # Normalize spacing
+        response = response.replace('\n\n\n', '\n\n')  # Clean extra spacing
         
         return response
         
