@@ -334,52 +334,70 @@ FORMAT:
             
             Use formal Indian application language with proper spacing and respectful tone.""",
             
-            'general': """You are a professional document specialist. Create well-structured documents with:
-            - Clear hierarchical headings
-            - Logical flow and organization
-            - Professional language appropriate to document type
-            - Complete sections with all necessary elements
-            - Proper formatting and spacing"""
+            'general': """You are a helpful AI assistant like ChatGPT. Provide conversational, informative responses to user queries. Be friendly, knowledgeable, and helpful. Answer questions naturally and provide useful information on any topic the user asks about. Keep responses concise but comprehensive."""
         }
         
         system_prompt = system_prompts.get(document_type, system_prompts['general'])
         
-        # Enhanced user prompt with specific formatting instructions
-        user_prompt = f"""Create a professional {document_type.upper()} document based on this request:
+        # Different prompts for general chat vs document generation
+        if document_type == 'general':
+            user_prompt = f"""User question: {prompt}
+            
+            Please provide a helpful, conversational response. Be friendly and informative like ChatGPT. If the user is asking about document generation, guide them to select the appropriate document type from the dropdown menu."""
+        else:
+            user_prompt = f"""Create a professional {document_type.upper()} document based on this request:
+            
+            REQUEST: {prompt}
+            
+            CRITICAL FORMATTING REQUIREMENTS:
+            ✓ Use UPPERCASE for all section headings
+            ✓ Use numbered points (1., 2., 3.) for lists
+            ✓ Include placeholder fields: [NAME], [ADDRESS], [DATE], [AMOUNT], etc.
+            ✓ Add proper spacing between sections
+            ✓ Use formal, professional language
+            ✓ Include all legally required elements
+            ✓ Make document complete and ready for use
+            ✓ Add signature lines and date fields
+            ✓ Include any necessary legal disclaimers
+            
+            OUTPUT: A complete, professional document that can be immediately used."""
         
-        REQUEST: {prompt}
-        
-        CRITICAL FORMATTING REQUIREMENTS:
-        ✓ Use UPPERCASE for all section headings
-        ✓ Use numbered points (1., 2., 3.) for lists
-        ✓ Include placeholder fields: [NAME], [ADDRESS], [DATE], [AMOUNT], etc.
-        ✓ Add proper spacing between sections
-        ✓ Use formal, professional language
-        ✓ Include all legally required elements
-        ✓ Make document complete and ready for use
-        ✓ Add signature lines and date fields
-        ✓ Include any necessary legal disclaimers
-        
-        OUTPUT: A complete, professional document that can be immediately used."""
-        
-        chat_completion = groq_client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            model="llama3-70b-8192",
-            temperature=0.1,  # Lower for more consistent output
-            max_tokens=4000,  # Increased for longer documents
-            top_p=0.9,
-            frequency_penalty=0.1
-        )
+        # Different parameters for general chat vs documents
+        if document_type == 'general':
+            chat_completion = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                model="llama3-70b-8192",
+                temperature=0.7,
+                max_tokens=2000,
+                top_p=0.9
+            )
+        else:
+            chat_completion = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                model="llama3-70b-8192",
+                temperature=0.1,
+                max_tokens=4000,
+                top_p=0.9,
+                frequency_penalty=0.1
+            )
         
         response = chat_completion.choices[0].message.content.strip()
         
-        # Post-process response for better Indian format
-        response = response.replace('**', '').replace('*', '')  # Remove markdown
-        response = re.sub(r'\n{3,}', '\n\n', response)  # Normalize spacing
-        response = response.replace('\n\n\n', '\n\n')  # Clean extra spacing
+        # Post-process response based on document type
+        if document_type == 'general':
+            # Keep natural formatting for general chat
+            response = re.sub(r'\n{3,}', '\n\n', response)  # Just normalize spacing
+        else:
+            # Format for documents
+            response = response.replace('**', '').replace('*', '')  # Remove markdown
+            response = re.sub(r'\n{3,}', '\n\n', response)  # Normalize spacing
+            response = response.replace('\n\n\n', '\n\n')  # Clean extra spacing
         
         return response
         
