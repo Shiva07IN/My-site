@@ -319,6 +319,42 @@ body::before {
     margin: 0 auto 1.5rem;
 }
 
+.doc-btn {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+}
+
+.doc-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.doc-btn:hover::before {
+    left: 100%;
+}
+
+.doc-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+    background: linear-gradient(135deg, var(--accent), var(--primary));
+}
+
 .chat-container {
     max-width: 800px;
     margin: 0 auto;
@@ -496,6 +532,25 @@ input, textarea, select {
     background: var(--glass);
     backdrop-filter: blur(10px);
     color: var(--light);
+    position: relative;
+}
+
+select {
+    background: linear-gradient(135deg, var(--glass), rgba(0, 212, 255, 0.1));
+    border: 2px solid var(--glass-border);
+    cursor: pointer;
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path fill="%2300d4ff" d="M6 8L0 2h12z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 3rem;
+}
+
+select:hover {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(102, 224, 255, 0.1));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
 }
 
 input::placeholder, textarea::placeholder {
@@ -506,6 +561,7 @@ input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 .send-btn {
