@@ -46,10 +46,17 @@ class DocumentGenerator:
     @staticmethod
     def generate_pdf(text: str, title: str, user_data: dict) -> str:
         try:
+            # Ensure text is not empty
+            if not text or text.strip() == "":
+                raise Exception("No content provided for PDF generation")
+            
             # Create temporary file with proper naming
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf', prefix='doc_')
-            filepath = temp_file.name
-            temp_file.close()
+            temp_dir = tempfile.gettempdir()
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"doc_{timestamp}_{uuid.uuid4().hex[:8]}.pdf"
+            filepath = os.path.join(temp_dir, filename)
+            
+            logger.info(f"Creating PDF at: {filepath}")
             
             doc = SimpleDocTemplate(filepath, pagesize=A4, 
                                   rightMargin=72, leftMargin=72, 
@@ -137,8 +144,18 @@ class DocumentGenerator:
             elements.append(Paragraph("_" * 40, signature_style))
             elements.append(Paragraph("Signature & Date", signature_style))
             
+            # Build the PDF
             doc.build(elements)
-            logger.info(f"PDF generated successfully: {filepath}")
+            
+            # Verify file was created
+            if not os.path.exists(filepath):
+                raise Exception("PDF file was not created")
+            
+            file_size = os.path.getsize(filepath)
+            if file_size == 0:
+                raise Exception("PDF file is empty")
+            
+            logger.info(f"PDF generated successfully: {filepath}, size: {file_size} bytes")
             return filepath
             
         except Exception as e:
@@ -525,11 +542,40 @@ def generate_document():
 @app.route('/api/download/<path:filepath>')
 def download_file(filepath):
     try:
-        if os.path.exists(filepath):
-            return send_file(filepath, as_attachment=True, download_name=os.path.basename(filepath))
+        # Decode filepath if needed
+        import urllib.parse
+        filepath = urllib.parse.unquote(filepath)
+        
+        logger.info(f"Attempting to download file: {filepath}")
+        
+        if not filepath or filepath == 'undefined':
+            logger.error("Invalid filepath provided")
+            return jsonify({'error': 'Invalid file path'}), 400
+        
+        if os.path.exists(filepath) and os.path.isfile(filepath):
+            try:
+                # Get file size for logging
+                file_size = os.path.getsize(filepath)
+                logger.info(f"File exists, size: {file_size} bytes")
+                
+                # Generate a clean filename
+                base_name = os.path.basename(filepath)
+                if not base_name.endswith('.pdf'):
+                    base_name = f"document_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                
+                return send_file(
+                    filepath, 
+                    as_attachment=True, 
+                    download_name=base_name,
+                    mimetype='application/pdf'
+                )
+            except Exception as send_error:
+                logger.error(f"Error sending file: {send_error}")
+                return jsonify({'error': 'Failed to send file'}), 500
         else:
-            logger.error(f"File not found: {filepath}")
-            return jsonify({'error': 'File not found'}), 404
+            logger.error(f"File not found or not accessible: {filepath}")
+            return jsonify({'error': 'File not found or not accessible'}), 404
+            
     except Exception as e:
         logger.error(f"Download error: {e}")
         return jsonify({'error': f'Download failed: {str(e)}'}), 500
