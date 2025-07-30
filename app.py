@@ -152,10 +152,12 @@ def extract_user_data(text: str) -> dict:
     
     return data
 
-async def generate_ai_response(prompt: str, document_type: str) -> str:
+def generate_ai_response(prompt: str, document_type: str) -> str:
     """Generate AI response using Groq API"""
     if not groq_client:
-        return "AI service not available. Please check configuration."
+        if not GROQ_API_KEY:
+            return "❌ GROQ_API_KEY not found. Please add it in Railway Variables."
+        return "❌ AI service not available. Please check configuration."
     
     try:
         system_prompts = {
@@ -183,7 +185,14 @@ async def generate_ai_response(prompt: str, document_type: str) -> str:
         
     except Exception as e:
         logger.error(f"Groq API error: {e}")
-        return f"AI service error: {str(e)}"
+        error_msg = str(e)
+        if "json" in error_msg.lower():
+            return "❌ API response format error. Please try again."
+        elif "rate limit" in error_msg.lower():
+            return "❌ Rate limit exceeded. Please wait and try again."
+        elif "invalid" in error_msg.lower():
+            return "❌ Invalid API key. Please check your GROQ_API_KEY."
+        return f"❌ AI service error: {error_msg[:100]}..."
 
 @app.route('/')
 def index():
@@ -192,8 +201,14 @@ def index():
 @app.route('/api/chat', methods=['POST'])
 def chat():
     try:
-        data = request.json
-        message = data.get('message', '')
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+            
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+            
+        message = data.get('message', '').strip()
         document_type = data.get('document_type', 'general')
         
         if not message:
@@ -205,12 +220,16 @@ def chat():
         return jsonify({
             'response': ai_response,
             'document_type': document_type,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'status': 'success'
         })
         
     except Exception as e:
         logger.error(f"Chat error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': f'Server error: {str(e)}',
+            'status': 'error'
+        }), 500
 
 @app.route('/api/generate-document', methods=['POST'])
 def generate_document():
