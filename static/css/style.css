@@ -546,6 +546,19 @@ select {
     padding-right: 3rem;
 }
 
+select option {
+    background: var(--darker);
+    color: var(--light);
+    padding: 0.75rem;
+    border: none;
+    backdrop-filter: blur(10px);
+}
+
+select option:hover {
+    background: rgba(0, 212, 255, 0.2);
+    color: var(--primary);
+}
+
 select:hover {
     border-color: var(--primary);
     background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(102, 224, 255, 0.1));
