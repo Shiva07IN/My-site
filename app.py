@@ -467,8 +467,8 @@ def generate_document():
         if not message:
             return jsonify({'error': 'Message is required'}), 400
         
-        if len(message) < 10:
-            return jsonify({'error': 'Please provide more details for better document generation'}), 400
+        if len(message) < 3:
+            return jsonify({'error': 'Please provide some details'}), 400
         
         # Extract user data
         user_data = extract_user_data(message)
@@ -483,7 +483,14 @@ def generate_document():
                 'status': 'error'
             }), 400
         
-        # Generate PDF
+        # Don't generate PDF for general chat
+        if document_type == 'general':
+            return jsonify({
+                'error': 'Please select a document type from dropdown to generate PDF',
+                'status': 'error'
+            }), 400
+        
+        # Generate PDF for document types only
         doc_title = DOCUMENT_TYPES.get(document_type, "AI-Generated Document")
         
         try:
