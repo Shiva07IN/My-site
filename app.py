@@ -161,12 +161,12 @@ def generate_ai_response(prompt: str, document_type: str) -> str:
     
     try:
         system_prompts = {
-            'affidavit': "You are an expert legal document writer. Create a complete, professional affidavit with proper legal format.",
-            'letter': "You are a professional business letter writer. Create a complete formal letter with proper format.",
-            'contract': "You are a contract specialist. Create a comprehensive contract with clear terms.",
-            'certificate': "You are creating official certificates. Generate a formal certificate with proper formatting.",
-            'application': "You are an expert in applications. Create authentic applications with proper format.",
-            'general': "You are a professional assistant. Provide helpful, well-structured responses."
+            'affidavit': "You are an expert legal document writer. Create a complete, professional affidavit with proper legal format, including: 1) Clear title 2) Declarant information 3) Statement of facts 4) Oath clause 5) Signature section. Use formal legal language and proper structure.",
+            'letter': "You are a professional business letter writer. Create a complete formal letter with: 1) Sender details 2) Date 3) Recipient details 4) Subject line 5) Professional salutation 6) Clear body paragraphs 7) Appropriate closing. Use professional tone and proper business format.",
+            'contract': "You are a contract specialist. Create a comprehensive contract with: 1) Clear title 2) Parties involved 3) Terms and conditions 4) Payment details 5) Duration 6) Termination clauses 7) Signature sections. Use precise legal language.",
+            'certificate': "You are creating official certificates. Generate a formal certificate with: 1) Official header 2) Certificate title 3) Recipient name 4) Achievement/completion details 5) Date 6) Authority signature section. Use formal, official language.",
+            'application': "You are an expert in applications. Create authentic applications with: 1) Application title 2) Applicant details 3) Purpose/reason 4) Supporting information 5) Declaration 6) Signature section. Use formal, respectful language.",
+            'general': "You are a professional document assistant. Create well-structured, professional documents with proper formatting, clear sections, and appropriate language for the requested document type."
         }
         
         system_prompt = system_prompts.get(document_type, system_prompts['general'])
@@ -174,11 +174,11 @@ def generate_ai_response(prompt: str, document_type: str) -> str:
         chat_completion = groq_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Create a {document_type} based on: {prompt}"}
+                {"role": "user", "content": f"Create a professional {document_type} document based on this request: {prompt}\n\nRequirements:\n- Use proper formatting with clear sections\n- Include all necessary legal/formal elements\n- Use professional language appropriate for the document type\n- Make it complete and ready to use\n- Include placeholder fields where personal information is needed"}
             ],
             model="llama3-70b-8192",
-            temperature=0.3,
-            max_tokens=2000
+            temperature=0.2,
+            max_tokens=3000
         )
         
         return chat_completion.choices[0].message.content.strip()
