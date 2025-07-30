@@ -169,35 +169,141 @@ def extract_user_data(text: str) -> dict:
     return data
 
 def generate_ai_response(prompt: str, document_type: str) -> str:
-    """Generate AI response using Groq API"""
+    """Generate AI response using Groq API with advanced prompting"""
     if not groq_client:
         if not GROQ_API_KEY:
             return "❌ GROQ_API_KEY not found. Please add it in Railway Variables."
         return "❌ AI service not available. Please check configuration."
     
     try:
+        # Advanced system prompts with detailed instructions
         system_prompts = {
-            'affidavit': "You are an expert legal document writer. Create a complete, professional affidavit with proper legal format, including: 1) Clear title 2) Declarant information 3) Statement of facts 4) Oath clause 5) Signature section. Use formal legal language and proper structure.",
-            'letter': "You are a professional business letter writer. Create a complete formal letter with: 1) Sender details 2) Date 3) Recipient details 4) Subject line 5) Professional salutation 6) Clear body paragraphs 7) Appropriate closing. Use professional tone and proper business format.",
-            'contract': "You are a contract specialist. Create a comprehensive contract with: 1) Clear title 2) Parties involved 3) Terms and conditions 4) Payment details 5) Duration 6) Termination clauses 7) Signature sections. Use precise legal language.",
-            'certificate': "You are creating official certificates. Generate a formal certificate with: 1) Official header 2) Certificate title 3) Recipient name 4) Achievement/completion details 5) Date 6) Authority signature section. Use formal, official language.",
-            'application': "You are an expert in applications. Create authentic applications with: 1) Application title 2) Applicant details 3) Purpose/reason 4) Supporting information 5) Declaration 6) Signature section. Use formal, respectful language.",
-            'general': "You are a professional document assistant. Create well-structured, professional documents with proper formatting, clear sections, and appropriate language for the requested document type."
+            'affidavit': """You are a senior legal document specialist with 20+ years experience. Create a legally compliant affidavit with:
+            
+STRUCTURE:
+            1. AFFIDAVIT title (centered, bold)
+            2. STATE/JURISDICTION line
+            3. COUNTY line  
+            4. Declarant identification (I, [NAME], being duly sworn...)
+            5. Numbered factual statements (clear, specific)
+            6. Oath clause ("I declare under penalty of perjury...")
+            7. Signature block with notary section
+            
+            LANGUAGE: Formal legal terminology, first person, present tense for facts
+            FORMAT: Professional legal document structure with proper spacing""",
+            
+            'letter': """You are an executive communications expert. Create a professional business letter with:
+            
+            STRUCTURE:
+            1. Sender's address (top right or letterhead)
+            2. Date
+            3. Recipient's address (left aligned)
+            4. Subject line (RE: [SUBJECT])
+            5. Professional salutation (Dear Mr./Ms. [NAME])
+            6. Opening paragraph (purpose)
+            7. Body paragraphs (details, supporting information)
+            8. Closing paragraph (call to action/next steps)
+            9. Professional closing (Sincerely, Best regards)
+            10. Signature block
+            
+            TONE: Professional, courteous, clear and concise
+            FORMAT: Standard business letter format with proper spacing""",
+            
+            'contract': """You are a contract law specialist. Create a comprehensive legal contract with:
+            
+            STRUCTURE:
+            1. CONTRACT TITLE (specific type)
+            2. PARTIES section (full legal names, addresses)
+            3. RECITALS ("WHEREAS" clauses)
+            4. TERMS AND CONDITIONS (numbered articles)
+            5. PAYMENT TERMS (amounts, schedules, methods)
+            6. DURATION AND TERMINATION
+            7. OBLIGATIONS OF EACH PARTY
+            8. DISPUTE RESOLUTION
+            9. GOVERNING LAW
+            10. SIGNATURE BLOCKS with witness lines
+            
+            LANGUAGE: Precise legal terminology, "shall" for obligations
+            FORMAT: Professional contract structure with clear sections""",
+            
+            'certificate': """You are an official certification authority. Create a formal certificate with:
+            
+            STRUCTURE:
+            1. CERTIFICATE OF [TYPE] (centered, prominent)
+            2. Official seal/logo placeholder
+            3. "This is to certify that" statement
+            4. Recipient name (prominent, centered)
+            5. Achievement/completion details
+            6. Date of completion/achievement
+            7. Issuing authority information
+            8. Authorized signature block
+            9. Official seal placement
+            
+            TONE: Formal, official, authoritative
+            FORMAT: Certificate layout with centered elements""",
+            
+            'application': """You are an application processing expert. Create a complete application form with:
+            
+            STRUCTURE:
+            1. APPLICATION FOR [PURPOSE] (title)
+            2. APPLICANT INFORMATION (personal details)
+            3. APPLICATION DETAILS (specific requirements)
+            4. SUPPORTING INFORMATION (qualifications, reasons)
+            5. DECLARATIONS (truthfulness, compliance)
+            6. REQUIRED DOCUMENTS (checklist)
+            7. SIGNATURE AND DATE
+            8. FOR OFFICE USE ONLY (processing section)
+            
+            TONE: Formal, respectful, complete
+            FORMAT: Standard application form structure""",
+            
+            'general': """You are a professional document specialist. Create well-structured documents with:
+            - Clear hierarchical headings
+            - Logical flow and organization
+            - Professional language appropriate to document type
+            - Complete sections with all necessary elements
+            - Proper formatting and spacing"""
         }
         
         system_prompt = system_prompts.get(document_type, system_prompts['general'])
         
+        # Enhanced user prompt with specific formatting instructions
+        user_prompt = f"""Create a professional {document_type.upper()} document based on this request:
+        
+        REQUEST: {prompt}
+        
+        CRITICAL FORMATTING REQUIREMENTS:
+        ✓ Use UPPERCASE for all section headings
+        ✓ Use numbered points (1., 2., 3.) for lists
+        ✓ Include placeholder fields: [NAME], [ADDRESS], [DATE], [AMOUNT], etc.
+        ✓ Add proper spacing between sections
+        ✓ Use formal, professional language
+        ✓ Include all legally required elements
+        ✓ Make document complete and ready for use
+        ✓ Add signature lines and date fields
+        ✓ Include any necessary legal disclaimers
+        
+        OUTPUT: A complete, professional document that can be immediately used."""
+        
         chat_completion = groq_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Create a professional {document_type} document based on this request: {prompt}\n\nFormatting Requirements:\n- Use clear section headings in UPPERCASE\n- Structure content in numbered points where appropriate\n- Include all necessary legal/formal elements\n- Use professional, formal language\n- Make it complete and ready to use\n- Include placeholder fields like [NAME], [ADDRESS], [DATE] where needed\n- Ensure proper paragraph spacing\n- Add appropriate legal disclaimers if required\n\nPlease create a well-structured, professional document that follows standard formatting conventions."}
+                {"role": "user", "content": user_prompt}
             ],
             model="llama3-70b-8192",
-            temperature=0.2,
-            max_tokens=3000
+            temperature=0.1,  # Lower for more consistent output
+            max_tokens=4000,  # Increased for longer documents
+            top_p=0.9,
+            frequency_penalty=0.1
         )
         
-        return chat_completion.choices[0].message.content.strip()
+        response = chat_completion.choices[0].message.content.strip()
+        
+        # Post-process response for better formatting
+        response = response.replace('**', '').replace('*', '')  # Remove markdown
+        response = re.sub(r'\n{3,}', '\n\n', response)  # Normalize spacing
+        
+        return response
         
     except Exception as e:
         logger.error(f"Groq API error: {e}")
@@ -208,6 +314,8 @@ def generate_ai_response(prompt: str, document_type: str) -> str:
             return "❌ Rate limit exceeded. Please wait and try again."
         elif "invalid" in error_msg.lower():
             return "❌ Invalid API key. Please check your GROQ_API_KEY."
+        elif "timeout" in error_msg.lower():
+            return "❌ Request timeout. Please try again."
         return f"❌ AI service error: {error_msg[:100]}..."
 
 @app.route('/')
@@ -250,12 +358,21 @@ def chat():
 @app.route('/api/generate-document', methods=['POST'])
 def generate_document():
     try:
-        data = request.json
-        message = data.get('message', '')
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+            
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+            
+        message = data.get('message', '').strip()
         document_type = data.get('document_type', 'general')
         
         if not message:
             return jsonify({'error': 'Message is required'}), 400
+        
+        if len(message) < 10:
+            return jsonify({'error': 'Please provide more details for better document generation'}), 400
         
         # Extract user data
         user_data = extract_user_data(message)
@@ -263,24 +380,44 @@ def generate_document():
         # Generate AI response
         ai_response = generate_ai_response(message, document_type)
         
+        # Check if AI response is an error
+        if ai_response.startswith('❌'):
+            return jsonify({
+                'error': ai_response,
+                'status': 'error'
+            }), 400
+        
         # Generate PDF
         doc_title = DOCUMENT_TYPES.get(document_type, "AI-Generated Document")
-        pdf_path = DocumentGenerator.generate_pdf(ai_response, doc_title, user_data)
+        
+        try:
+            pdf_path = DocumentGenerator.generate_pdf(ai_response, doc_title, user_data)
+        except Exception as pdf_error:
+            logger.error(f"PDF generation failed: {pdf_error}")
+            return jsonify({
+                'error': 'PDF generation failed. Please try again.',
+                'status': 'error'
+            }), 500
         
         # Generate unique filename
-        filename = f"{document_type}_{uuid.uuid4().hex[:8]}.pdf"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{document_type}_{timestamp}.pdf"
         
         return jsonify({
             'response': ai_response,
             'pdf_path': pdf_path,
             'filename': filename,
             'document_type': document_type,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'status': 'success'
         })
         
     except Exception as e:
         logger.error(f"Document generation error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': f'Document generation failed: {str(e)}',
+            'status': 'error'
+        }), 500
 
 @app.route('/api/download/<path:filepath>')
 def download_file(filepath):
