@@ -14,6 +14,8 @@ from groq import Groq
 import re
 import tempfile
 import uuid
+import threading
+import time
 
 # Load environment variables
 load_dotenv()
@@ -43,6 +45,26 @@ DOCUMENT_TYPES = {
 }
 
 class DocumentGenerator:
+    @staticmethod
+    def cleanup_old_files():
+        """Clean up PDF files older than 1 hour"""
+        try:
+            temp_dir = tempfile.gettempdir()
+            current_time = time.time()
+            
+            for filename in os.listdir(temp_dir):
+                if filename.startswith('doc_') and filename.endswith('.pdf'):
+                    filepath = os.path.join(temp_dir, filename)
+                    try:
+                        file_age = current_time - os.path.getctime(filepath)
+                        if file_age > 3600:  # 1 hour
+                            os.remove(filepath)
+                            logger.info(f"Cleaned up old PDF: {filepath}")
+                    except Exception as e:
+                        logger.warning(f"Could not clean up {filepath}: {e}")
+        except Exception as e:
+            logger.error(f"Cleanup error: {e}")
+    
     @staticmethod
     def generate_pdf(text: str, title: str, user_data: dict) -> str:
         try:
@@ -156,6 +178,12 @@ class DocumentGenerator:
                 raise Exception("PDF file is empty")
             
             logger.info(f"PDF generated successfully: {filepath}, size: {file_size} bytes")
+            
+            # Schedule cleanup in background
+            cleanup_thread = threading.Thread(target=DocumentGenerator.cleanup_old_files)
+            cleanup_thread.daemon = True
+            cleanup_thread.start()
+            
             return filepath
             
         except Exception as e:
@@ -512,6 +540,11 @@ def generate_document():
         
         try:
             pdf_path = DocumentGenerator.generate_pdf(ai_response, doc_title, user_data)
+            
+            # Verify PDF was created successfully
+            if not pdf_path or not os.path.exists(pdf_path):
+                raise Exception("PDF file was not created properly")
+                
         except Exception as pdf_error:
             logger.error(f"PDF generation failed: {pdf_error}")
             return jsonify({
@@ -519,17 +552,18 @@ def generate_document():
                 'status': 'error'
             }), 500
         
-        # Generate unique filename
+        # Generate clean filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{document_type}_{timestamp}.pdf"
+        clean_filename = f"{document_type}_{timestamp}.pdf"
         
         return jsonify({
             'response': ai_response,
             'pdf_path': pdf_path,
-            'filename': filename,
+            'filename': clean_filename,
             'document_type': document_type,
             'timestamp': datetime.now().isoformat(),
-            'status': 'success'
+            'status': 'success',
+            'file_size': os.path.getsize(pdf_path)
         })
         
     except Exception as e:
@@ -542,43 +576,44 @@ def generate_document():
 @app.route('/api/download/<path:filepath>')
 def download_file(filepath):
     try:
-        # Decode filepath if needed
         import urllib.parse
         filepath = urllib.parse.unquote(filepath)
         
-        logger.info(f"Attempting to download file: {filepath}")
-        
-        if not filepath or filepath == 'undefined':
-            logger.error("Invalid filepath provided")
+        # Validate filepath
+        if not filepath or filepath in ['undefined', 'null', '']:
             return jsonify({'error': 'Invalid file path'}), 400
         
-        if os.path.exists(filepath) and os.path.isfile(filepath):
-            try:
-                # Get file size for logging
-                file_size = os.path.getsize(filepath)
-                logger.info(f"File exists, size: {file_size} bytes")
-                
-                # Generate a clean filename
-                base_name = os.path.basename(filepath)
-                if not base_name.endswith('.pdf'):
-                    base_name = f"document_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                
-                return send_file(
-                    filepath, 
-                    as_attachment=True, 
-                    download_name=base_name,
-                    mimetype='application/pdf'
-                )
-            except Exception as send_error:
-                logger.error(f"Error sending file: {send_error}")
-                return jsonify({'error': 'Failed to send file'}), 500
-        else:
-            logger.error(f"File not found or not accessible: {filepath}")
-            return jsonify({'error': 'File not found or not accessible'}), 404
-            
+        # Security check - ensure file is in temp directory
+        temp_dir = tempfile.gettempdir()
+        if not filepath.startswith(temp_dir):
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Check file exists and is readable
+        if not (os.path.exists(filepath) and os.path.isfile(filepath) and os.access(filepath, os.R_OK)):
+            return jsonify({'error': 'File not found'}), 404
+        
+        # Validate file size
+        file_size = os.path.getsize(filepath)
+        if file_size == 0:
+            return jsonify({'error': 'File is empty'}), 400
+        
+        # Generate clean filename
+        base_name = os.path.basename(filepath)
+        if not base_name.endswith('.pdf'):
+            base_name = f"document_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        logger.info(f"Serving PDF: {base_name}, size: {file_size} bytes")
+        
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=base_name,
+            mimetype='application/pdf'
+        )
+        
     except Exception as e:
         logger.error(f"Download error: {e}")
-        return jsonify({'error': f'Download failed: {str(e)}'}), 500
+        return jsonify({'error': 'Download failed'}), 500
 
 @app.route('/health')
 def health():
