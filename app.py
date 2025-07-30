@@ -46,8 +46,8 @@ class DocumentGenerator:
     @staticmethod
     def generate_pdf(text: str, title: str, user_data: dict) -> str:
         try:
-            # Create temporary file
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+            # Create temporary file with proper naming
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf', prefix='doc_')
             filepath = temp_file.name
             temp_file.close()
             
@@ -61,7 +61,7 @@ class DocumentGenerator:
             title_style = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
-                fontSize=18,
+                fontSize=20,
                 spaceAfter=30,
                 alignment=TA_CENTER,
                 fontName='Helvetica-Bold',
@@ -71,18 +71,28 @@ class DocumentGenerator:
             content_style = ParagraphStyle(
                 'ContentStyle',
                 parent=styles['Normal'],
-                fontSize=11,
-                spaceAfter=12,
-                leading=16,
+                fontSize=12,
+                spaceAfter=15,
+                leading=18,
                 fontName='Helvetica',
                 textColor=colors.black,
                 alignment=TA_LEFT
             )
             
+            heading_style = ParagraphStyle(
+                'HeadingStyle',
+                parent=styles['Heading2'],
+                fontSize=14,
+                spaceAfter=12,
+                spaceBefore=20,
+                fontName='Helvetica-Bold',
+                textColor=colors.black
+            )
+            
             signature_style = ParagraphStyle(
                 'SignatureStyle',
                 parent=styles['Normal'],
-                fontSize=10,
+                fontSize=11,
                 spaceAfter=6,
                 fontName='Helvetica',
                 alignment=TA_RIGHT
@@ -92,34 +102,40 @@ class DocumentGenerator:
             
             # Add title
             elements.append(Paragraph(title.upper(), title_style))
-            elements.append(Spacer(1, 20))
+            elements.append(Spacer(1, 30))
             
             # Add date
-            current_date = datetime.now().strftime("%d/%m/%Y")
+            current_date = datetime.now().strftime("%B %d, %Y")
             elements.append(Paragraph(f"<b>Date:</b> {current_date}", content_style))
-            elements.append(Spacer(1, 20))
+            elements.append(Spacer(1, 25))
             
-            # Process and add main content
+            # Process and add main content with better formatting
             clean_text = str(text).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
             
             # Split content into paragraphs and format
             paragraphs = clean_text.split('\n')
             for para in paragraphs:
-                if para.strip():
-                    elements.append(Paragraph(para.strip(), content_style))
-                    elements.append(Spacer(1, 8))
+                para = para.strip()
+                if para:
+                    # Check if it's a heading (starts with number or capital letters)
+                    if para.isupper() or para.startswith(('1.', '2.', '3.', '4.', '5.', 'ARTICLE', 'SECTION')):
+                        elements.append(Paragraph(para, heading_style))
+                    else:
+                        elements.append(Paragraph(para, content_style))
+                    elements.append(Spacer(1, 10))
             
             # Add signature section
-            elements.append(Spacer(1, 30))
-            elements.append(Paragraph("_" * 30, signature_style))
-            elements.append(Paragraph("Signature", signature_style))
+            elements.append(Spacer(1, 40))
+            elements.append(Paragraph("_" * 40, signature_style))
+            elements.append(Paragraph("Signature & Date", signature_style))
             
             doc.build(elements)
+            logger.info(f"PDF generated successfully: {filepath}")
             return filepath
             
         except Exception as e:
             logger.error(f"PDF generation error: {e}")
-            raise e
+            raise Exception(f"PDF generation failed: {str(e)}")
 
 def extract_user_data(text: str) -> dict:
     """Extract user data from text"""
@@ -174,7 +190,7 @@ def generate_ai_response(prompt: str, document_type: str) -> str:
         chat_completion = groq_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Create a professional {document_type} document based on this request: {prompt}\n\nRequirements:\n- Use proper formatting with clear sections\n- Include all necessary legal/formal elements\n- Use professional language appropriate for the document type\n- Make it complete and ready to use\n- Include placeholder fields where personal information is needed"}
+                {"role": "user", "content": f"Create a professional {document_type} document based on this request: {prompt}\n\nFormatting Requirements:\n- Use clear section headings in UPPERCASE\n- Structure content in numbered points where appropriate\n- Include all necessary legal/formal elements\n- Use professional, formal language\n- Make it complete and ready to use\n- Include placeholder fields like [NAME], [ADDRESS], [DATE] where needed\n- Ensure proper paragraph spacing\n- Add appropriate legal disclaimers if required\n\nPlease create a well-structured, professional document that follows standard formatting conventions."}
             ],
             model="llama3-70b-8192",
             temperature=0.2,
@@ -269,10 +285,14 @@ def generate_document():
 @app.route('/api/download/<path:filepath>')
 def download_file(filepath):
     try:
-        return send_file(filepath, as_attachment=True)
+        if os.path.exists(filepath):
+            return send_file(filepath, as_attachment=True, download_name=os.path.basename(filepath))
+        else:
+            logger.error(f"File not found: {filepath}")
+            return jsonify({'error': 'File not found'}), 404
     except Exception as e:
         logger.error(f"Download error: {e}")
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
 @app.route('/health')
 def health():
