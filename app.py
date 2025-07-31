@@ -30,7 +30,7 @@ PORT = int(os.getenv('PORT', 5000))
 
 # NVIDIA NIM Configuration
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NVIDIA_MODEL = "meta/llama-3.1-70b-instruct"  # Best model for document generation
+NVIDIA_MODEL = "sarvam/sarvam-2b-v0-5"  # Sarvam-M AI for Indian context
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -544,7 +544,7 @@ Generate a COMPLETE, READY-TO-USE document."""
             "Content-Type": "application/json"
         }
         
-        # Different parameters for general chat vs documents
+        # Optimized parameters for Sarvam-M AI
         if document_type == 'general':
             payload = {
                 "model": NVIDIA_MODEL,
@@ -552,9 +552,21 @@ Generate a COMPLETE, READY-TO-USE document."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                "temperature": 0.7,
-                "max_tokens": 2000,
-                "top_p": 0.9
+                "temperature": 0.6,
+                "max_tokens": 1500,
+                "top_p": 0.85
+            }
+        elif document_type == 'application':
+            # Optimized for Indian government applications
+            payload = {
+                "model": NVIDIA_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.1,
+                "max_tokens": 2500,
+                "top_p": 0.75
             }
         else:
             payload = {
@@ -563,9 +575,9 @@ Generate a COMPLETE, READY-TO-USE document."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                "temperature": 0.1,
-                "max_tokens": 4000,
-                "top_p": 0.9
+                "temperature": 0.2,
+                "max_tokens": 2000,
+                "top_p": 0.8
             }
         
         # Make API request
