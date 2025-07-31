@@ -10,7 +10,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib import colors
 from dotenv import load_dotenv
-from groq import Groq
+import requests
+import json
 import re
 import tempfile
 import uuid
@@ -24,15 +25,16 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuration
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+NVIDIA_API_KEY = os.getenv('NVIDIA_API_KEY')
 PORT = int(os.getenv('PORT', 5000))
+
+# NVIDIA NIM Configuration
+NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
+NVIDIA_MODEL = "meta/llama-3.1-70b-instruct"  # Best model for document generation
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Initialize Groq client
-groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 # Document types
 DOCUMENT_TYPES = {
@@ -66,397 +68,546 @@ class DocumentGenerator:
             logger.error(f"Cleanup error: {e}")
     
     @staticmethod
+    def clean_text_for_pdf(text: str) -> str:
+        """Clean and prepare text for PDF generation"""
+        if not text:
+            return ""
+        
+        # Remove HTML tags and entities
+        text = re.sub(r'<[^>]+>', '', text)
+        text = text.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        text = text.replace('&nbsp;', ' ').replace('&quot;', '"').replace('&#39;', "'")
+        
+        # Clean up extra whitespace
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'\n\s*\n', '\n\n', text)
+        
+        # Escape special characters for ReportLab
+        text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        
+        return text.strip()
+    
+    @staticmethod
     def generate_pdf(text: str, title: str, user_data: dict) -> str:
         try:
-            # Ensure text is not empty
-            if not text or text.strip() == "":
-                raise Exception("No content provided for PDF generation")
+            # Validate input
+            if not text or not text.strip():
+                raise ValueError("No content provided for PDF generation")
             
-            # Create temporary file with proper naming
+            if not title or not title.strip():
+                title = "AI Generated Document"
+            
+            # Clean text
+            clean_text = DocumentGenerator.clean_text_for_pdf(text)
+            if not clean_text:
+                raise ValueError("Content is empty after cleaning")
+            
+            # Create secure temporary file
             temp_dir = tempfile.gettempdir()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"doc_{timestamp}_{uuid.uuid4().hex[:8]}.pdf"
             filepath = os.path.join(temp_dir, filename)
             
-            logger.info(f"Creating PDF at: {filepath}")
+            logger.info(f"Creating PDF: {filename}")
             
-            doc = SimpleDocTemplate(filepath, pagesize=A4, 
-                                  rightMargin=72, leftMargin=72, 
-                                  topMargin=72, bottomMargin=72)
-            
-            styles = getSampleStyleSheet()
-            
-            # Enhanced styles
-            title_style = ParagraphStyle(
-                'CustomTitle',
-                parent=styles['Heading1'],
-                fontSize=20,
-                spaceAfter=30,
-                alignment=TA_CENTER,
-                fontName='Helvetica-Bold',
-                textColor=colors.black
+            # Create PDF document
+            doc = SimpleDocTemplate(
+                filepath, 
+                pagesize=A4,
+                rightMargin=60, leftMargin=60,
+                topMargin=60, bottomMargin=60
             )
             
-            content_style = ParagraphStyle(
-                'ContentStyle',
-                parent=styles['Normal'],
-                fontSize=12,
-                spaceAfter=15,
-                leading=18,
-                fontName='Helvetica',
-                textColor=colors.black,
-                alignment=TA_LEFT
+            # Define styles
+            styles = getSampleStyleSheet()
+            
+            title_style = ParagraphStyle(
+                'Title',
+                parent=styles['Title'],
+                fontSize=18,
+                spaceAfter=24,
+                alignment=TA_CENTER,
+                fontName='Helvetica-Bold'
             )
             
             heading_style = ParagraphStyle(
-                'HeadingStyle',
+                'Heading',
                 parent=styles['Heading2'],
-                fontSize=14,
+                fontSize=13,
                 spaceAfter=12,
-                spaceBefore=20,
-                fontName='Helvetica-Bold',
-                textColor=colors.black
+                spaceBefore=16,
+                fontName='Helvetica-Bold'
+            )
+            
+            normal_style = ParagraphStyle(
+                'Normal',
+                parent=styles['Normal'],
+                fontSize=11,
+                spaceAfter=12,
+                leading=16,
+                fontName='Helvetica'
             )
             
             signature_style = ParagraphStyle(
-                'SignatureStyle',
+                'Signature',
                 parent=styles['Normal'],
-                fontSize=11,
-                spaceAfter=6,
-                fontName='Helvetica',
-                alignment=TA_RIGHT
+                fontSize=10,
+                spaceAfter=8,
+                alignment=TA_RIGHT,
+                fontName='Helvetica'
             )
             
+            # Build document elements
             elements = []
             
-            # Add title
+            # Title
             elements.append(Paragraph(title.upper(), title_style))
-            elements.append(Spacer(1, 30))
+            elements.append(Spacer(1, 20))
             
-            # Add date
+            # Date
             current_date = datetime.now().strftime("%B %d, %Y")
-            elements.append(Paragraph(f"<b>Date:</b> {current_date}", content_style))
-            elements.append(Spacer(1, 25))
+            elements.append(Paragraph(f"<b>Date:</b> {current_date}", normal_style))
+            elements.append(Spacer(1, 16))
             
-            # Process and add main content with better formatting
-            clean_text = str(text).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-            
-            # Split content into paragraphs and format with better spacing
+            # Process content
             paragraphs = clean_text.split('\n')
-            for i, para in enumerate(paragraphs):
-                para = para.strip()
-                if para:
-                    # Check if it's a heading or title
-                    if (para.isupper() and len(para) < 50) or para.startswith(('1.', '2.', '3.', '4.', '5.', 'To,', 'Subject:', 'Date:', 'DEPONENT', 'VERIFICATION')):
-                        elements.append(Paragraph(para, heading_style))
-                        elements.append(Spacer(1, 15))
-                    else:
-                        elements.append(Paragraph(para, content_style))
-                        # Add more space after certain sections
-                        if para.endswith((':')) or 'faithfully' in para.lower() or 'sincerely' in para.lower():
-                            elements.append(Spacer(1, 20))
-                        else:
-                            elements.append(Spacer(1, 12))
-                else:
-                    # Add space for empty lines
-                    elements.append(Spacer(1, 8))
             
-            # Add signature section
-            elements.append(Spacer(1, 40))
-            elements.append(Paragraph("_" * 40, signature_style))
+            for para in paragraphs:
+                para = para.strip()
+                if not para:
+                    elements.append(Spacer(1, 6))
+                    continue
+                
+                # Detect headings
+                is_heading = (
+                    para.isupper() and len(para) < 60 or
+                    para.startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.')) or
+                    para.startswith(('To,', 'Subject:', 'DEPONENT', 'VERIFICATION', 'WHEREAS'))
+                )
+                
+                if is_heading:
+                    elements.append(Paragraph(para, heading_style))
+                else:
+                    elements.append(Paragraph(para, normal_style))
+                    
+                    # Extra spacing after certain phrases
+                    if any(phrase in para.lower() for phrase in ['sincerely', 'faithfully', 'regards']):
+                        elements.append(Spacer(1, 16))
+            
+            # Signature section
+            elements.append(Spacer(1, 30))
+            elements.append(Paragraph("_" * 35, signature_style))
             elements.append(Paragraph("Signature & Date", signature_style))
             
-            # Build the PDF
+            # Build PDF
             doc.build(elements)
             
-            # Verify file was created
+            # Verify creation
             if not os.path.exists(filepath):
-                raise Exception("PDF file was not created")
+                raise RuntimeError("PDF file was not created")
             
             file_size = os.path.getsize(filepath)
             if file_size == 0:
-                raise Exception("PDF file is empty")
+                raise RuntimeError("Generated PDF is empty")
             
-            logger.info(f"PDF generated successfully: {filepath}, size: {file_size} bytes")
+            logger.info(f"PDF created successfully: {file_size} bytes")
             
-            # Schedule cleanup in background
-            cleanup_thread = threading.Thread(target=DocumentGenerator.cleanup_old_files)
-            cleanup_thread.daemon = True
-            cleanup_thread.start()
+            # Background cleanup
+            threading.Thread(
+                target=DocumentGenerator.cleanup_old_files,
+                daemon=True
+            ).start()
             
             return filepath
             
         except Exception as e:
-            logger.error(f"PDF generation error: {e}")
-            raise Exception(f"PDF generation failed: {str(e)}")
+            logger.error(f"PDF generation failed: {e}")
+            raise RuntimeError(f"PDF generation error: {str(e)}")
 
 def extract_user_data(text: str) -> dict:
     """Extract user data from text"""
-    data = {}
+    if not text:
+        return {}
     
-    # Name patterns
+    data = {}
+    text_lower = text.lower()
+    
+    # Name patterns (fixed regex)
     name_patterns = [
-        r"(?:my name is|i am|name:?)\\s*([A-Za-z\\s]+)",
-        r"([A-Z][a-z]+\\s+[A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)"
+        r"(?:my name is|i am|name:?)\s*([A-Za-z\s]+)",
+        r"([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)"
     ]
     
-    # Address patterns
+    # Address patterns (fixed regex)
     address_patterns = [
-        r"(?:address|live at|residing at|from):?\\s*([^.\\n]+(?:\\d{6}|\\d{3}\\s*\\d{3})[^.\\n]*)"
+        r"(?:address|live at|residing at|from):?\s*([^.\n]+(?:\d{6}|\d{3}\s*\d{3})[^.\n]*)"
     ]
     
     # Extract name
     for pattern in name_patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match and len(match.group(1).strip().split()) >= 2:
-            data['full_name'] = match.group(1).strip()
-            break
+        try:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match and len(match.group(1).strip().split()) >= 2:
+                data['full_name'] = match.group(1).strip()
+                break
+        except Exception:
+            continue
     
     # Extract address
     for pattern in address_patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            data['address'] = match.group(1).strip()
-            break
+        try:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                data['address'] = match.group(1).strip()
+                break
+        except Exception:
+            continue
     
     return data
 
-def generate_ai_response(prompt: str, document_type: str) -> str:
-    """Generate AI response using Groq API with advanced prompting"""
-    if not groq_client:
-        if not GROQ_API_KEY:
-            return "❌ GROQ_API_KEY not found. Please add it in Railway Variables."
-        return "❌ AI service not available. Please check configuration."
+class IndianDocumentAgent:
+    """Advanced AI agent specialized for Indian document generation"""
     
-    try:
-        # Advanced system prompts with detailed instructions
-        system_prompts = {
-            'affidavit': """You are an Indian legal document expert. Create an Indian format affidavit with proper spacing:
-            
-FORMAT:
-            AFFIDAVIT
-            
-            I, [FULL NAME], son/daughter of [FATHER'S NAME], aged [AGE] years, resident of [FULL ADDRESS], do hereby solemnly affirm and declare as under:
-            
-            1. That I am the deponent herein and I am competent to swear to this affidavit.
-            
-            2. That [main statement with proper details].
-            
-            3. That [supporting facts].
-            
-            4. That I undertake to inform the concerned authorities if any of the above information is found to be false or incorrect.
-            
-            5. That this affidavit is made for [PURPOSE] and no other purpose.
-            
-            DEPONENT
-            
-            VERIFICATION
-            
-            I, the above named deponent, do hereby verify that the contents of this affidavit are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
-            
-            Verified at [PLACE] on this [DATE] day of [MONTH], [YEAR].
-            
-            DEPONENT
-            
-            Use proper Indian legal language and format with adequate spacing between sections.""",
-            
-            'letter': """You are an Indian business communication expert. Create Indian format business letter with proper spacing:
-            
-            FORMAT:
-            [SENDER'S NAME]
-            [DESIGNATION]
-            [COMPANY/ORGANIZATION]
-            [ADDRESS]
-            [CITY, PIN CODE]
-            [EMAIL]
-            [MOBILE NUMBER]
-            
-            Date: [DATE]
-            
-            To,
-            [RECIPIENT'S NAME]
-            [DESIGNATION]
-            [COMPANY/ORGANIZATION]
-            [ADDRESS]
-            [CITY, PIN CODE]
-            
-            Subject: [SUBJECT LINE]
-            
-            Dear Sir/Madam,
-            
-            I hope this letter finds you in good health and spirits.
-            
-            [Opening paragraph explaining purpose]
-            
-            [Main content with details]
-            
-            [Supporting information or request]
-            
-            I would be grateful if you could [specific request/action needed]. Please feel free to contact me if you need any additional information.
-            
-            Thanking you for your time and consideration.
-            
-            Yours sincerely,
-            
-            [SIGNATURE]
-            [FULL NAME]
-            [DESIGNATION]
-            
-            Use formal Indian business language with respectful tone and proper spacing.""",
-            
-            'contract': """You are a contract law specialist. Create a comprehensive legal contract with:
-            
-            STRUCTURE:
-            1. CONTRACT TITLE (specific type)
-            2. PARTIES section (full legal names, addresses)
-            3. RECITALS ("WHEREAS" clauses)
-            4. TERMS AND CONDITIONS (numbered articles)
-            5. PAYMENT TERMS (amounts, schedules, methods)
-            6. DURATION AND TERMINATION
-            7. OBLIGATIONS OF EACH PARTY
-            8. DISPUTE RESOLUTION
-            9. GOVERNING LAW
-            10. SIGNATURE BLOCKS with witness lines
-            
-            LANGUAGE: Precise legal terminology, "shall" for obligations
-            FORMAT: Professional contract structure with clear sections""",
-            
-            'certificate': """You are an official certification authority. Create a formal certificate with:
-            
-            STRUCTURE:
-            1. CERTIFICATE OF [TYPE] (centered, prominent)
-            2. Official seal/logo placeholder
-            3. "This is to certify that" statement
-            4. Recipient name (prominent, centered)
-            5. Achievement/completion details
-            6. Date of completion/achievement
-            7. Issuing authority information
-            8. Authorized signature block
-            9. Official seal placement
-            
-            TONE: Formal, official, authoritative
-            FORMAT: Certificate layout with centered elements""",
-            
-            'application': """You are an Indian government application expert. Create Indian format application with proper spacing:
-            
-            FORMAT:
-            To,
-            [DESIGNATION]
-            [DEPARTMENT/ORGANIZATION]
-            [ADDRESS]
-            
-            Subject: Application for [PURPOSE]
-            
-            Respected Sir/Madam,
-            
-            I, [FULL NAME], son/daughter of [FATHER'S NAME], aged [AGE] years, resident of [FULL ADDRESS], would like to submit this application for [PURPOSE].
-            
-            My details are as follows:
-            
-            1. Name: [FULL NAME]
-            2. Father's/Husband's Name: [NAME]
-            3. Date of Birth: [DOB]
-            4. Address: [FULL ADDRESS]
-            5. Mobile Number: [MOBILE]
-            6. Email ID: [EMAIL]
-            7. Educational Qualification: [QUALIFICATION]
-            
-            I request you to kindly consider my application and grant me [REQUEST]. I shall be highly obliged for your kind consideration.
-            
-            Thanking you,
-            
-            Yours faithfully,
-            
-            [SIGNATURE]
-            [FULL NAME]
-            
-            Date: [DATE]
-            Place: [PLACE]
-            
-            Enclosures:
-            1. [DOCUMENT 1]
-            2. [DOCUMENT 2]
-            
-            Use formal Indian application language with proper spacing and respectful tone.""",
-            
-            'general': """You are a helpful AI assistant like ChatGPT. Provide conversational, informative responses to user queries. Be friendly, knowledgeable, and helpful. Answer questions naturally and provide useful information on any topic the user asks about. Keep responses concise but comprehensive."""
+    def __init__(self):
+        self.indian_legal_terms = {
+            'deponent': 'the person making the affidavit',
+            'verification': 'legal confirmation of truth',
+            'whereas': 'legal preamble clause',
+            'hereby': 'by this document',
+            'aforesaid': 'mentioned before'
         }
         
-        system_prompt = system_prompts.get(document_type, system_prompts['general'])
+        self.indian_formats = {
+            'date_format': '%d/%m/%Y',
+            'address_pattern': r'([A-Za-z0-9\s,.-]+)[-\s]*([1-9][0-9]{5})$',
+            'name_pattern': r'^[A-Za-z\s.]+$'
+        }
+    
+    def get_system_prompt(self, doc_type: str) -> str:
+        """Get refined system prompt for Indian documents"""
+        prompts = {
+            'affidavit': """You are an expert Indian legal document specialist with 20+ years experience. Create PERFECT Indian affidavits following Supreme Court guidelines.
+
+CRITICAL REQUIREMENTS:
+✓ Use EXACT Indian legal format and terminology
+✓ Include proper verification clause as per Indian Evidence Act
+✓ Use "son/daughter of" format (not "s/o" or "d/o")
+✓ Include complete address with PIN code
+✓ Use formal legal language with "That" clauses
+✓ Add proper deponent signature blocks
+✓ Include notarization space
+
+STRUCTURE:
+AFFIDAVIT
+
+I, [FULL NAME], son/daughter of [FATHER'S NAME], aged [AGE] years, resident of [COMPLETE ADDRESS WITH PIN], do hereby solemnly affirm and declare as under:
+
+1. That I am the deponent herein and competent to swear to this affidavit.
+2. That [MAIN STATEMENT with specific details].
+3. That [SUPPORTING FACTS with evidence].
+4. That [ADDITIONAL CLAUSES as needed].
+5. That I undertake to inform concerned authorities if any information is found false.
+6. That this affidavit is made for [SPECIFIC PURPOSE] only.
+
+DEPONENT
+
+VERIFICATION
+I, the above-named deponent, verify that contents are true to my knowledge and belief, nothing material concealed.
+
+Verified at [PLACE] on [DATE].
+
+DEPONENT
+
+Before me:
+Notary Public/Oath Commissioner""",
+
+            'letter': """You are a senior Indian business communication expert. Create PERFECT Indian business letters following government and corporate standards.
+
+CRITICAL REQUIREMENTS:
+✓ Use proper Indian business letter format
+✓ Include complete sender details with PIN code
+✓ Use respectful Indian business language
+✓ Add proper subject line format
+✓ Include reference numbers if applicable
+✓ Use "Yours faithfully" for unknown recipients, "Yours sincerely" for known
+✓ Add enclosure list if documents attached
+
+STRUCTURE:
+[SENDER NAME]
+[DESIGNATION]
+[ORGANIZATION]
+[COMPLETE ADDRESS]
+[CITY - PIN CODE]
+[EMAIL] | [MOBILE]
+
+Ref: [REFERENCE NUMBER]
+Date: [DD/MM/YYYY]
+
+To,
+[RECIPIENT NAME]
+[DESIGNATION]
+[ORGANIZATION]
+[COMPLETE ADDRESS]
+[CITY - PIN CODE]
+
+Subject: [CLEAR SUBJECT LINE]
+
+Dear Sir/Madam,
+
+I hope this letter finds you in good health.
+
+[OPENING PARAGRAPH - Purpose]
+[MAIN CONTENT - Details with bullet points if needed]
+[CLOSING PARAGRAPH - Action requested]
+
+I shall be grateful for your kind consideration and early response.
+
+Thanking you,
+
+Yours faithfully/sincerely,
+
+[SIGNATURE]
+[FULL NAME]
+[DESIGNATION]
+
+Enclosures: [LIST IF ANY]""",
+
+            'application': """You are an Indian government application specialist. Create PERFECT applications following official formats.
+
+CRITICAL REQUIREMENTS:
+✓ Use exact Indian government application format
+✓ Include all mandatory personal details
+✓ Use respectful government communication tone
+✓ Add proper enclosure list
+✓ Include declaration if required
+✓ Use "Yours faithfully" closing
+✓ Add date and place at bottom
+
+STRUCTURE:
+To,
+[OFFICER DESIGNATION]
+[DEPARTMENT/OFFICE]
+[COMPLETE ADDRESS]
+[CITY - PIN CODE]
+
+Subject: Application for [SPECIFIC PURPOSE]
+
+Respected Sir/Madam,
+
+I, [FULL NAME], son/daughter of [FATHER'S NAME], would like to submit this application for [PURPOSE].
+
+My details are as follows:
+1. Full Name: [NAME]
+2. Father's/Husband's Name: [NAME]
+3. Date of Birth: [DD/MM/YYYY]
+4. Address: [COMPLETE ADDRESS WITH PIN]
+5. Mobile Number: [10-DIGIT NUMBER]
+6. Email ID: [EMAIL]
+7. Educational Qualification: [DETAILS]
+8. [OTHER RELEVANT DETAILS]
+
+[MAIN REQUEST PARAGRAPH with justification]
+
+I request you to kindly consider my application favorably. I shall be highly obliged.
+
+Thanking you,
+
+Yours faithfully,
+
+[SIGNATURE]
+[FULL NAME]
+
+Date: [DD/MM/YYYY]
+Place: [CITY NAME]
+
+Enclosures:
+1. [DOCUMENT 1]
+2. [DOCUMENT 2]""",
+
+            'contract': """You are an Indian contract law expert. Create LEGALLY SOUND contracts following Indian Contract Act 1872.
+
+CRITICAL REQUIREMENTS:
+✓ Follow Indian Contract Act provisions
+✓ Include proper parties identification
+✓ Add consideration clause
+✓ Include jurisdiction and governing law
+✓ Add dispute resolution mechanism
+✓ Include termination clauses
+✓ Add witness signatures
+
+STRUCTURE:
+[CONTRACT TYPE]
+
+This Agreement is made on [DATE] between:
+
+PARTY 1: [FULL DETAILS]
+PARTY 2: [FULL DETAILS]
+
+WHEREAS [RECITALS]
+
+NOW THEREFORE, parties agree:
+
+1. SCOPE OF WORK/SERVICE
+2. CONSIDERATION AND PAYMENT
+3. DURATION AND COMMENCEMENT
+4. OBLIGATIONS OF PARTIES
+5. TERMINATION CONDITIONS
+6. DISPUTE RESOLUTION
+7. GOVERNING LAW
+8. MISCELLANEOUS
+
+IN WITNESS WHEREOF, parties execute this agreement.
+
+PARTY 1: ________________
+WITNESS: ________________
+
+PARTY 2: ________________
+WITNESS: ________________""",
+
+            'certificate': """You are an Indian certification authority expert. Create OFFICIAL certificates following government standards.
+
+CRITICAL REQUIREMENTS:
+✓ Use official certificate format
+✓ Include proper authority details
+✓ Add certificate number and date
+✓ Include official seal placement
+✓ Use formal certification language
+✓ Add validity period if applicable
+
+STRUCTURE:
+[ORGANIZATION LETTERHEAD]
+
+CERTIFICATE OF [TYPE]
+Certificate No: [NUMBER]
+Date: [DD/MM/YYYY]
+
+This is to certify that [RECIPIENT NAME], son/daughter of [FATHER'S NAME], has successfully [ACHIEVEMENT/COMPLETION].
+
+[DETAILED DESCRIPTION]
+
+This certificate is issued on [DATE] and is valid [VALIDITY PERIOD].
+
+[AUTHORIZED SIGNATURE]
+[NAME AND DESIGNATION]
+[OFFICIAL SEAL]"""
+        }
+        return prompts.get(doc_type, "You are a helpful AI assistant.")
+    
+    def validate_indian_content(self, content: str, doc_type: str) -> str:
+        """Validate and enhance Indian document content"""
+        # Add Indian-specific validations
+        if doc_type == 'affidavit' and 'VERIFICATION' not in content:
+            content += "\n\nVERIFICATION\n\nI verify that the contents are true to my knowledge.\n\nDEPONENT"
         
-        # Different prompts for general chat vs document generation
-        if document_type == 'general':
-            user_prompt = f"""User question: {prompt}
-            
-            Please provide a helpful, conversational response. Be friendly and informative like ChatGPT. If the user is asking about document generation, guide them to select the appropriate document type from the dropdown menu."""
+        # Ensure proper Indian address format
+        content = re.sub(r'\b(\d{6})\b', r'- \1', content)  # Add dash before PIN
+        
+        # Fix Indian name formats
+        content = re.sub(r'\bs/o\b', 'son of', content, flags=re.IGNORECASE)
+        content = re.sub(r'\bd/o\b', 'daughter of', content, flags=re.IGNORECASE)
+        
+        return content
+
+def generate_ai_response(prompt: str, document_type: str) -> str:
+    """Generate AI response using NVIDIA NIM API with Indian document agent"""
+    if not NVIDIA_API_KEY:
+        return "❌ NVIDIA_API_KEY not found. Please add it in Railway Variables."
+    
+    try:
+        agent = IndianDocumentAgent()
+        system_prompt = agent.get_system_prompt(document_type)
+        
+        # Enhanced user prompt with Indian context
+        if document_type != 'general':
+            user_prompt = f"""Create a professional {document_type.upper()} following EXACT Indian legal/official format.
+
+USER REQUEST: {prompt}
+
+IMPORTANT INSTRUCTIONS:
+✓ Use ONLY Indian legal terminology and format
+✓ Include ALL mandatory sections and clauses
+✓ Use proper Indian address format with PIN codes
+✓ Add appropriate legal language and phrases
+✓ Include signature blocks and witness lines
+✓ Ensure document is legally compliant in India
+✓ Use respectful Indian communication style
+
+Generate a COMPLETE, READY-TO-USE document."""
         else:
-            user_prompt = f"""Create a professional {document_type.upper()} document based on this request:
-            
-            REQUEST: {prompt}
-            
-            CRITICAL FORMATTING REQUIREMENTS:
-            ✓ Use UPPERCASE for all section headings
-            ✓ Use numbered points (1., 2., 3.) for lists
-            ✓ Include placeholder fields: [NAME], [ADDRESS], [DATE], [AMOUNT], etc.
-            ✓ Add proper spacing between sections
-            ✓ Use formal, professional language
-            ✓ Include all legally required elements
-            ✓ Make document complete and ready for use
-            ✓ Add signature lines and date fields
-            ✓ Include any necessary legal disclaimers
-            
-            OUTPUT: A complete, professional document that can be immediately used."""
+            user_prompt = f"User question: {prompt}\n\nProvide helpful information about Indian documents or general assistance."
+        
+
+        
+        # Prepare NVIDIA NIM API request
+        headers = {
+            "Authorization": f"Bearer {NVIDIA_API_KEY}",
+            "Content-Type": "application/json"
+        }
         
         # Different parameters for general chat vs documents
         if document_type == 'general':
-            chat_completion = groq_client.chat.completions.create(
-                messages=[
+            payload = {
+                "model": NVIDIA_MODEL,
+                "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                model="llama3-70b-8192",
-                temperature=0.7,
-                max_tokens=2000,
-                top_p=0.9
-            )
+                "temperature": 0.7,
+                "max_tokens": 2000,
+                "top_p": 0.9
+            }
         else:
-            chat_completion = groq_client.chat.completions.create(
-                messages=[
+            payload = {
+                "model": NVIDIA_MODEL,
+                "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                model="llama3-70b-8192",
-                temperature=0.1,
-                max_tokens=4000,
-                top_p=0.9,
-                frequency_penalty=0.1
-            )
+                "temperature": 0.1,
+                "max_tokens": 4000,
+                "top_p": 0.9
+            }
         
-        response = chat_completion.choices[0].message.content.strip()
+        # Make API request
+        api_response = requests.post(
+            f"{NVIDIA_BASE_URL}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
         
-        # Post-process response based on document type
-        if document_type == 'general':
-            # Keep natural formatting for general chat
-            response = re.sub(r'\n{3,}', '\n\n', response)  # Just normalize spacing
-        else:
-            # Format for documents
-            response = response.replace('**', '').replace('*', '')  # Remove markdown
-            response = re.sub(r'\n{3,}', '\n\n', response)  # Normalize spacing
-            response = response.replace('\n\n\n', '\n\n')  # Clean extra spacing
+        if api_response.status_code != 200:
+            raise Exception(f"API request failed: {api_response.status_code} - {api_response.text}")
+        
+        response_data = api_response.json()
+        response = response_data['choices'][0]['message']['content'].strip()
+        
+        # Post-process with Indian document agent
+        if document_type != 'general':
+            response = agent.validate_indian_content(response, document_type)
+        
+        # Clean formatting
+        response = response.replace('**', '').replace('*', '')
+        response = re.sub(r'\n{3,}', '\n\n', response)
+        response = response.replace('\n\n\n', '\n\n')
         
         return response
         
+    except requests.exceptions.Timeout:
+        logger.error("NVIDIA API timeout")
+        return "❌ Request timeout. Please try again."
+    except requests.exceptions.RequestException as e:
+        logger.error(f"NVIDIA API request error: {e}")
+        return "❌ Network error. Please check your connection."
     except Exception as e:
-        logger.error(f"Groq API error: {e}")
+        logger.error(f"NVIDIA API error: {e}")
         error_msg = str(e)
-        if "json" in error_msg.lower():
-            return "❌ API response format error. Please try again."
-        elif "rate limit" in error_msg.lower():
+        if "401" in error_msg or "unauthorized" in error_msg.lower():
+            return "❌ Invalid API key. Please check your NVIDIA_API_KEY."
+        elif "429" in error_msg or "rate limit" in error_msg.lower():
             return "❌ Rate limit exceeded. Please wait and try again."
-        elif "invalid" in error_msg.lower():
-            return "❌ Invalid API key. Please check your GROQ_API_KEY."
-        elif "timeout" in error_msg.lower():
-            return "❌ Request timeout. Please try again."
+        elif "json" in error_msg.lower():
+            return "❌ API response format error. Please try again."
         return f"❌ AI service error: {error_msg[:100]}..."
 
 @app.route('/')
@@ -541,12 +692,22 @@ def generate_document():
         try:
             pdf_path = DocumentGenerator.generate_pdf(ai_response, doc_title, user_data)
             
-            # Verify PDF was created successfully
+            # Verify PDF creation
             if not pdf_path or not os.path.exists(pdf_path):
-                raise Exception("PDF file was not created properly")
+                raise RuntimeError("PDF file was not created")
+            
+            # Verify file size
+            if os.path.getsize(pdf_path) == 0:
+                raise RuntimeError("Generated PDF is empty")
                 
-        except Exception as pdf_error:
+        except (ValueError, RuntimeError) as pdf_error:
             logger.error(f"PDF generation failed: {pdf_error}")
+            return jsonify({
+                'error': f'PDF generation failed: {str(pdf_error)}',
+                'status': 'error'
+            }), 500
+        except Exception as pdf_error:
+            logger.error(f"Unexpected PDF error: {pdf_error}")
             return jsonify({
                 'error': 'PDF generation failed. Please try again.',
                 'status': 'error'

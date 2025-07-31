@@ -1,1 +1,1 @@
-web: python Bot_enhanced.py
+web: gunicorn app:app
