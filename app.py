@@ -30,7 +30,7 @@ PORT = int(os.getenv('PORT', 5000))
 
 # NVIDIA NIM Configuration
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NVIDIA_MODEL = "sarvam/sarvam-2b-v0-5"  # Sarvam-M AI for Indian context
+NVIDIA_MODEL = "meta/llama-3.1-70b-instruct"  # Reliable model for Indian context
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -662,7 +662,7 @@ Generate a COMPLETE, READY-TO-USE document."""
             "Content-Type": "application/json"
         }
         
-        # Optimized parameters for Sarvam-M AI
+        # Optimized parameters for Llama model
         if document_type == 'general':
             payload = {
                 "model": NVIDIA_MODEL,
@@ -670,9 +670,9 @@ Generate a COMPLETE, READY-TO-USE document."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                "temperature": 0.6,
-                "max_tokens": 1500,
-                "top_p": 0.85
+                "temperature": 0.7,
+                "max_tokens": 2000,
+                "top_p": 0.9
             }
         elif document_type == 'application':
             # Optimized for Indian government applications
@@ -683,8 +683,8 @@ Generate a COMPLETE, READY-TO-USE document."""
                     {"role": "user", "content": user_prompt}
                 ],
                 "temperature": 0.1,
-                "max_tokens": 2500,
-                "top_p": 0.75
+                "max_tokens": 4000,
+                "top_p": 0.8
             }
         else:
             payload = {
@@ -694,8 +694,8 @@ Generate a COMPLETE, READY-TO-USE document."""
                     {"role": "user", "content": user_prompt}
                 ],
                 "temperature": 0.2,
-                "max_tokens": 2000,
-                "top_p": 0.8
+                "max_tokens": 3000,
+                "top_p": 0.85
             }
         
         # Make API request
@@ -724,7 +724,7 @@ Generate a COMPLETE, READY-TO-USE document."""
         # Detect language for logging
         hindi_chars = re.findall(r'[\u0900-\u097F]', response)
         language = "Hindi" if len(hindi_chars) > 10 else "English"
-        logger.info(f"Sarvam-M generated {document_type} document in {language} with {len(response)} characters")
+        logger.info(f"Generated {document_type} document in {language} with {len(response)} characters")
         
         return response
         
