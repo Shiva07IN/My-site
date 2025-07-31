@@ -334,17 +334,23 @@ async function generateDocument(docType, message) {
         
         if (response.ok && data.pdf_path) {
             try {
-                // Download the PDF with better error handling
-                const downloadUrl = `/api/download/${encodeURIComponent(data.pdf_path)}`;
+                // Properly encode the PDF path for URL
+                const encodedPath = encodeURIComponent(data.pdf_path);
+                const downloadUrl = `/api/download/${encodedPath}`;
                 console.log('Downloading from:', downloadUrl);
+                console.log('Original path:', data.pdf_path);
                 
                 const downloadResponse = await fetch(downloadUrl);
                 
                 if (!downloadResponse.ok) {
-                    throw new Error(`Download failed: ${downloadResponse.status} ${downloadResponse.statusText}`);
+                    const errorText = await downloadResponse.text();
+                    console.error('Download response error:', errorText);
+                    throw new Error(`Download failed: ${downloadResponse.status} - ${errorText}`);
                 }
                 
                 const contentType = downloadResponse.headers.get('content-type');
+                console.log('Content type:', contentType);
+                
                 if (!contentType || !contentType.includes('application/pdf')) {
                     const errorText = await downloadResponse.text();
                     console.error('Invalid content type:', contentType, errorText);
@@ -352,34 +358,43 @@ async function generateDocument(docType, message) {
                 }
                 
                 const blob = await downloadResponse.blob();
+                console.log('Blob size:', blob.size);
                 
                 if (blob.size === 0) {
                     throw new Error('Downloaded file is empty');
                 }
                 
+                // Create download link
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = data.filename || 'document.pdf';
+                a.download = data.filename || `document_${Date.now()}.pdf`;
                 a.style.display = 'none';
+                
+                // Trigger download
                 document.body.appendChild(a);
                 a.click();
                 
                 // Clean up
                 setTimeout(() => {
-                    document.body.removeChild(a);
+                    if (document.body.contains(a)) {
+                        document.body.removeChild(a);
+                    }
                     window.URL.revokeObjectURL(url);
-                }, 100);
+                }, 1000);
                 
                 showNotification('Document generated and downloaded successfully!', 'success');
+                
             } catch (downloadError) {
-                console.error('Download error:', downloadError);
+                console.error('Download error details:', downloadError);
                 showNotification(`Download failed: ${downloadError.message}`, 'error');
             }
         } else {
+            console.error('Generation error:', data);
             showNotification(`Error: ${data.error || 'Unknown error occurred'}`, 'error');
         }
     } catch (error) {
+        console.error('Request error:', error);
         showNotification(`Error: ${error.message}`, 'error');
     }
 }
